@@ -168,10 +168,12 @@ magwart_box = false;
 
 // points to place screw towers
 screw_points = [];
+screw_points_far = [];
 
 // boolean, do screwtower in the top or bottom half of the box
 screwtower_top = true;
 screwtower_bottom = true;
+screwtower_far_wall = false;
 
 // diameters of screw tower
 screw_od = 8; screw_id = 3.3;
@@ -201,6 +203,9 @@ screw_slot_d = 0;
 // (positive values drive the slots further from each other,
 // negative values bring them closer together
 screw_slot_xdepth = 0;//(0-CLEAR);
+
+// extra distance to add or subtract from the bottom screw tower height
+screwtower_bottom_z_adjustment = 0;
 
 // ========== LAYOUT ========== 
 
@@ -657,19 +662,36 @@ module hingedbox_half( bd, topflag=false ) {
                     cylinder( d=screw_id, h=(lz-CLEAR)+CS2, $fn=screw_ifn);
                 }
             }}
+            // screwtower lid holes far side
+            if (screwtower_top && screwtower_far_wall) {for (i=screw_points_far) { 
+                translate( [ dx, dy, 0] )
+                rotate([0,0,180])
+                translate( [ dx-(dx*i), (dy-wt)-(stsz/2), 0-CS] ) gang() {
+                    cylinder( d=hnut_d, h=hnut_t+CS2, $fn=6);
+                    cylinder( d=screw_id, h=(lz-CLEAR)+CS2, $fn=screw_ifn);
+                }
+            }}
         } else {
             translate( [dx-wt,dy-wt,0] ) rotate([0,0,180]) cutout_bottom( top_d );
             translate([wt,dy,0]) rotate([-90,180,0]) rotate([0,90,0]) cutout_right( side_d );
             translate([dx-wt,0,0]) rotate([90,0,90]) cutout_left( side_d );
             translate([dx,dy-wt,0]) rotate([90,0,180]) cutout_front( front_d );
             translate([0,wt,0]) rotate([90,0,0]) cutout_back( front_d );
-            // screwtower
+            // punchbottom
             if (screw_punchbottom) { for (i=screw_points) { 
                 translate( [ (dx*i), (dy-wt)-(stsz/2), 0-CS] ) gang() {
                     cylinder( d=hnut_d, h=hnut_t+CS2, $fn=6);
                     cylinder( d=screw_id, h=(lz-CLEAR)+CS2, $fn=screw_ifn);
                 }}
-            }//punchbottom
+            }//punchbottom far side
+            if (screw_punchbottom && screwtower_far_wall) { for (i=screw_points_far) { 
+                translate( [ dx, dy, 0] )
+                rotate([0,0,180])
+                translate( [ (dx*i), (dy-wt)-(stsz/2), 0-CS] ) gang() {
+                    cylinder( d=hnut_d, h=hnut_t+CS2, $fn=6);
+                    cylinder( d=screw_id, h=(lz-CLEAR)+CS2, $fn=screw_ifn);
+                }}
+            }//punchbottom && far_wall
         }//topflag
     }// top level difference
     
@@ -692,6 +714,16 @@ module hingedbox_half( bd, topflag=false ) {
             }
             // screwtower top inside lid
             if (screwtower_top) {for (i=screw_points) { 
+                translate( [ dx-(dx*i), (dy-wt)-(stsz/2), 0] ) 
+                difference() {
+                    screw_tower( lz, false ); // not doing taper doesnt matter :)
+                    cylinder( d=screw_id, h=(lz-CLEAR)+CS2, $fn=screw_ifn);
+                }
+            }}
+            // screwtower top inside lid far side
+            if (screwtower_top &&  screwtower_far_wall) {for (i=screw_points_far) { 
+                translate( [ dx, dy, 0] )
+                rotate([0,0,180])
                 translate( [ dx-(dx*i), (dy-wt)-(stsz/2), 0] ) 
                 difference() {
                     screw_tower( lz, false ); // not doing taper doesnt matter :)
@@ -721,7 +753,13 @@ module hingedbox_half( bd, topflag=false ) {
             }
             // screwtowers bottom inside body
             if (screwtower_bottom) {for (i=screw_points) {
-                translate( [ (dx*i), (dy-wt)-(stsz/2), 0] ) screw_tower( lz-(lip_h+CLEAR) );
+                translate( [ (dx*i), (dy-wt)-(stsz/2), 0] ) screw_tower( lz-(lip_h+CLEAR)+screwtower_bottom_z_adjustment );
+            }}
+            // screwtowers bottom inside body far side
+            if (screwtower_bottom && screwtower_far_wall) {for (i=screw_points_far) {
+                translate( [ dx, dy, 0] )
+                rotate([0,0,180])
+                translate( [ (dx*i), (dy-wt)-(stsz/2), 0] ) screw_tower( lz-(lip_h+CLEAR)+screwtower_bottom_z_adjustment );
             }}
             // magwarts
             for (i=magwart_points) {
